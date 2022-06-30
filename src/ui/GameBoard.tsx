@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import React from "react";
 import "./GameBoard.css";
 import { BOARD_HEIGHT, BOARD_WIDTH } from "../data/config";
 import { Board, Cell } from "../data/constants";

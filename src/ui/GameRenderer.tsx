@@ -1,5 +1,6 @@
 import { Board, Cell, TurnState } from "../data/constants";
 import { GameBoard } from "./GameBoard";
+import React from "react";
 
 // function convertEvalToBarPercentage(positionEval?: number) {
 //   if (positionEval === undefined) {
