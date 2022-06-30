@@ -1,4 +1,4 @@
-import { GameState, Move, MoveMap } from "../contants";
+import { GameState, Move, MoveMap } from "../data/constants";
 
 export function generatePossibleMoves(gameState: GameState): Array<Move> {
   return [];

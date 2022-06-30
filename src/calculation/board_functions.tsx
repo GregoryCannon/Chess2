@@ -1,6 +1,6 @@
-import { Board, Cell, Move } from "../contants";
-import { Piece } from "../pieces";
-import { BOARD_HEIGHT, BOARD_WIDTH } from "../config";
+import { Board, Cell, Move } from "../data/constants";
+import { Piece } from "../data/pieces";
+import { BOARD_HEIGHT, BOARD_WIDTH } from "../data/config";
 
 export function boardGet(board: Board, cell: Cell): Piece {
   return board.charAt(cell) as Piece;

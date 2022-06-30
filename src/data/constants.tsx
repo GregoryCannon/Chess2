@@ -69,8 +69,6 @@ export const StartBoard: string =
   emptyRow +
   emptyRow +
   emptyRow +
-  emptyRow +
-  emptyRow +
   // row
   Piece.wPawn +
   Piece.wPawn +

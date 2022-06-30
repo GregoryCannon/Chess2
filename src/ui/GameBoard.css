@@ -1,0 +1,60 @@
+.game-board {
+  display: inline-block;
+}
+
+.board-row,
+.label-row {
+  display: flex;
+  flex-direction: row;
+  width: fit-content;
+}
+
+.label-vertical {
+  width: 20px;
+  line-height: 60px;
+}
+
+.label-horizontal {
+  width: 62px;
+}
+
+.board-square {
+  width: 60px;
+  height: 60px;
+  text-align: center;
+  border: 1px solid black;
+  background-color: rgb(192, 192, 192);
+}
+
+.board-square .contents {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-drag: none;
+  user-select: none;
+  -moz-user-select: none;
+  -webkit-user-drag: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+}
+
+.highlight-layer {
+  width: 100%;
+  height: 100%;
+}
+
+.primary-highlighted {
+  background-color: orange;
+}
+
+.secondary-highlighted {
+  background-color: rgba(255, 166, 0, 0.4);
+}
+
+.white {
+  background-color: rgb(225, 240, 255);
+}
+
+.black {
+  background-color: rgb(122, 148, 196);
+}

@@ -1,5 +1,5 @@
 import React from "react";
-import { getBoardAfterMove } from "../calculation/board_functions";
+import { boardGet, getBoardAfterMove } from "../calculation/board_functions";
 import {
   convertMoveListToMoveMap,
   generatePossibleMoves,
@@ -11,7 +11,9 @@ import {
   MoveMap,
   StartState,
   TurnState,
-} from "../contants";
+} from "../data/constants";
+import { isAllied, Piece } from "../data/pieces";
+import { GameRenderer } from "./GameRenderer";
 
 export class GameManager extends React.Component<
   {},
@@ -26,7 +28,7 @@ export class GameManager extends React.Component<
   constructor(props: any) {
     super(props);
     this.state = {
-      gameStateHistory: [],
+      gameStateHistory: [StartState],
       gameState: StartState,
       turnState: TurnState.NotStarted,
       moveMap: undefined,
@@ -39,10 +41,11 @@ export class GameManager extends React.Component<
   }
 
   restart() {
+    console.log("RESTART");
     this.setState({
       gameState: StartState,
       gameStateHistory: [],
-      turnState: TurnState.NotStarted,
+      turnState: TurnState.WhiteTurn,
       moveMap: undefined,
     });
   }
@@ -59,7 +62,7 @@ export class GameManager extends React.Component<
       whiteToMove: !this.state.gameState.whiteToMove,
       crowsActive: false,
     };
-
+    this.state.gameStateHistory.push(nextGameState);
     const nextMoveList = generatePossibleMoves(nextGameState);
 
     // // Check for game-over conditions
@@ -76,6 +79,7 @@ export class GameManager extends React.Component<
     // Compile the new state object=
     const nextState = {
       selectedCell: undefined,
+      gameState: nextGameState,
       turnState: nextTurnState,
       moveMap: convertMoveListToMoveMap(nextMoveList),
     };
@@ -96,10 +100,20 @@ export class GameManager extends React.Component<
       return;
     }
 
-    if (this.state.selectedCell) {
+    if (this.state.selectedCell !== undefined) {
       const startCell = this.state.selectedCell;
       // If clicked on selected piece, de-select it
-      if (clickCell === startCell) {
+      if (
+        clickCell === startCell ||
+        isAllied(
+          boardGet(this.state.gameState.board, clickCell),
+          this.state.gameState.whiteToMove
+        )
+      ) {
+        console.log(
+          "DESELCING",
+          boardGet(this.state.gameState.board, clickCell)
+        );
         this.setState({ selectedCell: undefined });
         return;
       }
@@ -123,15 +137,26 @@ export class GameManager extends React.Component<
 
   /** Find all locations where a legal move can end. */
   getLegalDestinations(): Set<Cell> {
-    if (!this.state.selectedCell || !this.state.moveMap) {
+    if (this.state.selectedCell === undefined || !this.state.moveMap) {
       return new Set();
     }
     return this.state.moveMap.get(this.state.selectedCell) || new Set();
   }
 
   /** Find all locations where a legal move can start. */
-  getMovablePieces() {
-    return new Set(this.state.moveMap?.keys());
+  getMovablePieces(): Set<Cell> {
+    // return new Set(this.state.moveMap?.keys());
+    const result: Set<Cell> = new Set();
+    for (let i = 0; i < 64; i++) {
+      const cellContents = boardGet(this.state.gameState.board, i);
+      if (
+        cellContents !== Piece.Empty &&
+        isAllied(cellContents, this.state.gameState.whiteToMove)
+      ) {
+        result.add(i);
+      }
+    }
+    return result;
   }
 
   /** Halt the current game. At the moment, the game cannot be resumed, only restarted. */
@@ -143,21 +168,16 @@ export class GameManager extends React.Component<
 
   render() {
     return (
-      // <GameRenderer
-      //   board={this.state.board}
-      //   turnState={this.state.turnState}
-      //   turnCount={this.state.turnCount}
-      //   visitedStates={this.state.visitedStates}
-      //   movablePieces={this.getMovablePieces()}
-      //   legalDestinations={this.getLegalDestinations()}
-      //   stopGameFunction={this.stopGame}
-      //   restartFunction={this.restart}
-      //   onCellClickedFunction={this.onCellClicked}
-      //   selectedCell={this.state.selectedCell}
-      //   positionEval={this.state.positionEval}
-      //   bestLine={this.state.bestLine}
-      // />
-      <div>The game renderer will go here.</div>
+      <GameRenderer
+        board={this.state.gameState.board}
+        turnState={this.state.turnState}
+        movablePieces={this.getMovablePieces()}
+        legalDestinations={this.getLegalDestinations()}
+        stopGameFunction={this.stopGame}
+        restartFunction={this.restart}
+        onCellClickedFunction={this.onCellClicked}
+        selectedCell={this.state.selectedCell}
+      />
     );
   }
 }
