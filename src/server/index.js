@@ -5,7 +5,7 @@ const path = require("path");
 const app = express();
 const server = http.createServer(app);
 
-const MAIN_PORT = process.env.PORT || 3000;
+const MAIN_PORT = process.env.PORT || 4000;
 
 /**
  * SERVE THE UI

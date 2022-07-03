@@ -4,7 +4,7 @@ import "./Lobby.css";
 const { io } = require("socket.io-client");
 
 const socket = io(
-  IS_PRODUCTION ? "https://chesstwo.herokuapp.com" : "http://localhost:3000"
+  IS_PRODUCTION ? "https://chesstwo.herokuapp.com" : "http://localhost:4000"
 );
 
 socket.on("connect", () => {

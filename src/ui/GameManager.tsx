@@ -13,6 +13,7 @@ import {
 import { isAllied } from "../calculation/piece_functions";
 import { GameRenderer } from "./GameRenderer";
 import { IS_PRODUCTION } from "../data/config";
+import { getStaticEval } from "../calculation/static-eval";
 const { io } = require("socket.io-client");
 
 export class GameManager extends React.Component<
@@ -24,6 +25,7 @@ export class GameManager extends React.Component<
     gameState: GameState;
     chatMessages: string[];
     moveMap?: MoveMap;
+    eval?: number;
     selectedCell?: number;
   }
 > {
@@ -79,7 +81,7 @@ export class GameManager extends React.Component<
       const socket = io(
         IS_PRODUCTION
           ? "https://chesstwo.herokuapp.com"
-          : "http://localhost:3000"
+          : "http://localhost:4000"
       );
       this.socketRef.current = socket;
 
@@ -132,6 +134,7 @@ export class GameManager extends React.Component<
       board: getBoardAfterMove(move, current.board),
       whiteToMove: !this.state.gameState.whiteToMove,
       crowsActive: isCapture,
+      lastMove: move,
     };
 
     // // Check for game-over conditions
@@ -152,6 +155,7 @@ export class GameManager extends React.Component<
       gameState: nextGameState,
       turnState: nextTurnState,
       moveMap: getMoveMap(nextGameState),
+      eval: getStaticEval(nextGameState),
     };
 
     // Advance the turn and let AI make the next move
@@ -247,6 +251,16 @@ export class GameManager extends React.Component<
     return new Set();
   }
 
+  getQuaternaryHighlightedCells(): Set<Cell> {
+    if (!this.state.gameState.lastMove || this.state.selectedCell) {
+      return new Set();
+    }
+    return new Set([
+      this.state.gameState.lastMove.start,
+      this.state.gameState.lastMove.end,
+    ]);
+  }
+
   isMyTurn() {
     // In a local game, it's always someone's turn on this client
     if (!this.props.online) {
@@ -290,13 +304,15 @@ export class GameManager extends React.Component<
         turnState={this.state.turnState}
         semiHighlightedCells={this.getSemiHighlightedCells()}
         tertiaryHighlightedCells={this.getTertiaryHighlightedCells()}
+        quaternaryHighlightedCells={this.getQuaternaryHighlightedCells()}
         stopGameFunction={this.stopGame}
         restartFunction={this.restart}
         onCellClickedFunction={this.onCellClicked}
         selectedCell={this.state.selectedCell}
         chatMessages={this.state.chatMessages}
         chatFunction={this.sendChatMessage}
-        isWhite={!this.props.online || this.playerColorRef.current == "white"}
+        positionEval={this.state.eval}
+        isWhite={!this.props.online || this.playerColorRef.current === "white"}
         {...this.props}
       />
     );

@@ -13,25 +13,6 @@ function cellIsSelected(
   return selectedCell === encodeCell(rowIndex, colIndex);
 }
 
-// wPawn = "P",
-//   wElephant = "E",
-//   wCrow = "C",
-//   wMonke = "M",
-//   wQueen = "Q",
-//   wFishQueen = "F",
-//   wKingWithBanana = "K",
-//   wKing = "L",
-//   bPawn = "p",
-//   bElephant = "e",
-//   bCrow = "c",
-//   bMonke = "m",
-//   bQueen = "q",
-//   bFishQueen = "f",
-//   bKingWithBanana = "k",
-//   bKing = "l",
-//   Bear = "B",
-//   Empty = ".",
-
 const PIECE_IMAGES = new Map([
   [Piece.wPawn, "wPawn"],
   [Piece.wElephant, "wElephant"],
@@ -48,7 +29,7 @@ const PIECE_IMAGES = new Map([
   [Piece.bQueen, "bQueen"],
   [Piece.bFishQueen, "bFishQueen"],
   [Piece.bKingWithBanana, "bKing"],
-  [Piece.wKing, "bKing"],
+  [Piece.bKing, "bKing"],
   [Piece.Bear, "Bear"],
 ]);
 
@@ -91,6 +72,7 @@ type Props = {
   selectedCell?: Cell;
   secondaryHighlightedCells: Set<Cell>;
   tertiaryHighlightedCells: Set<Cell>;
+  quaternaryHighlightedCells: Set<Cell>;
   isWhite: boolean;
 };
 
@@ -99,6 +81,22 @@ export function GameBoard(props: Props) {
   function renderCell(props: Props, row: number, col: number): any {
     const cell = encodeCell(row, col);
     const cellContents = boardGet(props.board, cell);
+    let classList = "highlight-layer ";
+    if (cellIsSelected(row, col, props.selectedCell)) {
+      classList += "primary-highlighted ";
+    } else if (props.secondaryHighlightedCells.has(cell)) {
+      classList += "secondary-highlighted ";
+    } else if (
+      props.quaternaryHighlightedCells.has(cell) &&
+      props.tertiaryHighlightedCells.has(cell)
+    ) {
+      classList += "tert-and-quat-highlighted ";
+    } else if (props.quaternaryHighlightedCells.has(cell)) {
+      classList += "quaternary-highlighted ";
+    } else if (props.tertiaryHighlightedCells.has(cell)) {
+      classList += "tertiary-highlighted ";
+    }
+
     return (
       <div
         className={
@@ -109,17 +107,7 @@ export function GameBoard(props: Props) {
           props.onCellClicked(encodeCell(row, col));
         }}
       >
-        <div
-          className={
-            cellIsSelected(row, col, props.selectedCell)
-              ? "highlight-layer primary-highlighted"
-              : props.secondaryHighlightedCells.has(cell)
-              ? "highlight-layer secondary-highlighted"
-              : props.tertiaryHighlightedCells.has(cell)
-              ? "highlight-layer tertiary-highlighted"
-              : "highlight-layer"
-          }
-        >
+        <div className={classList}>
           {cellContents && cellContents !== Piece.Empty && (
             <img
               className="contents"

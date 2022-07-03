@@ -50,6 +50,7 @@ export type GameState = {
   whiteToMove: boolean;
   board: Board;
   crowsActive: boolean;
+  lastMove: Move;
 };
 
 const emptyRow: string = "........";
@@ -58,7 +59,7 @@ export const StartBoard: string =
   Piece.bMonke +
   Piece.bPawn +
   Piece.bQueen +
-  Piece.bKingWithBanana +
+  Piece.bKing +
   Piece.bPawn +
   Piece.bMonke +
   Piece.bCrow +
@@ -90,13 +91,14 @@ export const StartBoard: string =
   Piece.wMonke +
   Piece.wPawn +
   Piece.wQueen +
-  Piece.wKingWithBanana +
+  Piece.wKing +
   Piece.wPawn +
   Piece.wMonke +
   Piece.wCrow;
 
-export const START_STATE = {
+export const START_STATE: GameState = {
   board: StartBoard,
   crowsActive: false,
   whiteToMove: true,
+  lastMove: null,
 };

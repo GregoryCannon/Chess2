@@ -109,7 +109,7 @@ function _moveOnly(
     return false;
   }
   const end = encodeCell(endRow, endCol);
-  if (boardGet(board, end) == Piece.Empty) {
+  if (boardGet(board, end) === Piece.Empty) {
     moveList.push({ start, end });
     return true;
   }
@@ -154,9 +154,8 @@ function _pawnMoveSearch(
   if (
     gameState.whiteToMove &&
     row >= 6 &&
-    boardGet(gameState.board, startCell - BOARD_WIDTH) == Piece.Empty
+    boardGet(gameState.board, startCell - BOARD_WIDTH) === Piece.Empty
   ) {
-    console.log("double pausn");
     _moveOnly(
       gameState.board,
       startCell,
@@ -168,9 +167,8 @@ function _pawnMoveSearch(
   } else if (
     !gameState.whiteToMove &&
     row <= 1 &&
-    boardGet(gameState.board, startCell + BOARD_WIDTH) == Piece.Empty
+    boardGet(gameState.board, startCell + BOARD_WIDTH) === Piece.Empty
   ) {
-    console.log("double pausn");
     _moveOnly(
       gameState.board,
       startCell,
@@ -311,13 +309,6 @@ function _monkeHopMoveSearch(
   visited: Set<Cell>,
   moveList: Move[]
 ) {
-  console.log(
-    "\nExploring",
-    prettyPrintCell(encodeCell(startRow, startCol)),
-    moveList
-  );
-  visited.forEach((x) => console.log("Visited:", prettyPrintCell(x)));
-
   // Mark this cell as visited
   visited.add(encodeCell(startRow, startCol));
 
@@ -410,12 +401,11 @@ function _ravenMoveSearch(
       gameState.whiteToMove,
       moveList
     );
-  } else {
-    // Otherwise, can move to any open square.
-    for (let i = 0; i < BOARD_SIZE; i++) {
-      if (boardGet(gameState.board, i) === Piece.Empty) {
-        moveList.push({ start: startCell, end: i });
-      }
+  }
+  // Otherwise, can move to any open square.
+  for (let i = 0; i < BOARD_SIZE; i++) {
+    if (boardGet(gameState.board, i) === Piece.Empty) {
+      moveList.push({ start: startCell, end: i });
     }
   }
 }
