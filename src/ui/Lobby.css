@@ -1,0 +1,22 @@
+.Lobby-Container {
+  background: lightblue;
+  margin: 50px auto;
+  max-width: 500px;
+  padding: 20px;
+}
+
+.Lobby-Row {
+  margin-bottom: 20px;
+}
+
+.Lobby-Container a,
+.Lobby-Container button {
+  font-size: 18px;
+  margin: 6px;
+  background: rgb(0, 98, 255);
+  color: white;
+  border: 0px;
+  border-radius: 4px;
+  padding: 4px 10px;
+  text-decoration: none;
+}

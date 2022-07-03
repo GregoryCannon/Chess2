@@ -1,7 +1,8 @@
 import React from "react";
 import { boardGet, getBoardAfterMove } from "../calculation/board_functions";
+import { useParams } from "react-router-dom";
 import {
-  convertMoveListToMoveMap,
+  getMoveMap,
   generatePossibleMoves,
 } from "../calculation/move_calculator";
 import {
@@ -9,49 +10,119 @@ import {
   GameState,
   Move,
   MoveMap,
-  StartState,
+  START_STATE,
   TurnState,
 } from "../data/constants";
-import { isAllied, Piece } from "../data/pieces";
+import { Piece } from "../data/pieces";
+import { isAllied } from "../calculation/piece_functions";
 import { GameRenderer } from "./GameRenderer";
+import { BOARD_SIZE } from "../data/config";
+const { io } = require("socket.io-client");
 
 export class GameManager extends React.Component<
-  {},
+  { params: any; online: boolean },
   {
+    waitingOnJoin: boolean;
     turnState: TurnState;
-    gameStateHistory: Array<GameState>;
+    gameStateHistory: GameState[];
     gameState: GameState;
+    chatMessages: string[];
     moveMap?: MoveMap;
     selectedCell?: number;
   }
 > {
+  socketRef: any;
+  lobbyIdRef: any;
+  playerColorRef: any;
   constructor(props: any) {
     super(props);
     this.state = {
-      gameStateHistory: [StartState],
-      gameState: StartState,
-      turnState: TurnState.NotStarted,
-      moveMap: undefined,
+      waitingOnJoin: props.online,
+      gameStateHistory: [START_STATE],
+      gameState: START_STATE,
+      turnState: TurnState.WhiteTurn,
+      moveMap: getMoveMap(START_STATE),
       selectedCell: undefined,
+      chatMessages: [],
     };
+    this.socketRef = React.createRef();
+    this.lobbyIdRef = React.createRef();
+    this.playerColorRef = React.createRef();
+
+    // Get the lobby ID from URL params
+    console.log("PARAMS:", props.params.lobbyId);
+    this.lobbyIdRef.current = props.params.lobbyId;
 
     this.onCellClicked = this.onCellClicked.bind(this);
     this.restart = this.restart.bind(this);
-    this.stopGame = this.stopGame.bind(this);
+    this.makeMove = this.makeMove.bind(this);
+    this.sendChatMessage = this.sendChatMessage.bind(this);
+    this.sendHeartbeat = this.sendHeartbeat.bind(this);
+  }
+
+  componentDidMount() {
+    if (this.props.online) {
+      this.setupWebSockets();
+    }
   }
 
   restart() {
     console.log("RESTART");
     this.setState({
-      gameState: StartState,
-      gameStateHistory: [],
+      gameStateHistory: [START_STATE],
+      gameState: START_STATE,
       turnState: TurnState.WhiteTurn,
-      moveMap: undefined,
+      moveMap: getMoveMap(START_STATE),
+      selectedCell: undefined,
     });
+  }
+
+  setupWebSockets() {
+    // Handle socket setup
+    if (!this.socketRef.current) {
+      const socket = io("http://localhost:4000");
+      this.socketRef.current = socket;
+
+      socket.on("connect", () => {
+        console.log("Connected to server!", socket.id);
+        socket.emit("send-message", "My ID is " + socket.id, "");
+        socket.emit("join-lobby", this.lobbyIdRef.current);
+        console.log("Tried to join lobby", this.lobbyIdRef.current);
+      });
+
+      socket.on("lobby-message", (msg: string) => {
+        console.log("GOT CHAT MESSAGE", msg, this.state.gameState.board);
+        this.setState({ chatMessages: this.state.chatMessages.concat(msg) });
+      });
+
+      socket.on("join-success", (playerColor: string) => {
+        console.log("JOIN SUCCESS", playerColor);
+        this.playerColorRef.current = playerColor;
+        this.setState({ waitingOnJoin: false });
+      });
+
+      socket.on("lobby-move", (move: Move, playerId: string) => {
+        console.log("lobby move", move, playerId, this.socketRef.current.id);
+        if (playerId !== this.socketRef.current.id) {
+          this.makeMove(move);
+        }
+      });
+    }
+
+    this.sendHeartbeat();
+  }
+
+  sendHeartbeat() {
+    this.socketRef.current.emit("heartbeat", this.lobbyIdRef.current);
+    setTimeout(this.sendHeartbeat, 10000);
   }
 
   makeMove(move: Move) {
     const current = this.state.gameState;
+    const isCapture = isAllied(
+      boardGet(current.board, move.end),
+      !current.whiteToMove
+    );
 
     // Get the new board, visitedStates and turnState
     let nextTurnState = current.whiteToMove
@@ -60,10 +131,8 @@ export class GameManager extends React.Component<
     const nextGameState = {
       board: getBoardAfterMove(move, current.board),
       whiteToMove: !this.state.gameState.whiteToMove,
-      crowsActive: false,
+      crowsActive: isCapture,
     };
-    this.state.gameStateHistory.push(nextGameState);
-    const nextMoveList = generatePossibleMoves(nextGameState);
 
     // // Check for game-over conditions
     // const [gameIsOver, score, gameOverTurnState] = checkForGameOver(
@@ -76,12 +145,13 @@ export class GameManager extends React.Component<
     //   nextTurnState = gameOverTurnState;
     // }
 
-    // Compile the new state object=
+    // Compile the new state object
+    this.state.gameStateHistory.push(nextGameState);
     const nextState = {
       selectedCell: undefined,
       gameState: nextGameState,
       turnState: nextTurnState,
-      moveMap: convertMoveListToMoveMap(nextMoveList),
+      moveMap: getMoveMap(nextGameState),
     };
 
     // Advance the turn and let AI make the next move
@@ -99,32 +169,25 @@ export class GameManager extends React.Component<
     ) {
       return;
     }
+    if (!this.isMyTurn()) {
+      return;
+    }
 
     if (this.state.selectedCell !== undefined) {
       const startCell = this.state.selectedCell;
       // If clicked on selected piece, de-select it
-      if (
-        clickCell === startCell ||
-        isAllied(
-          boardGet(this.state.gameState.board, clickCell),
-          this.state.gameState.whiteToMove
-        )
-      ) {
-        console.log(
-          "DESELCING",
-          boardGet(this.state.gameState.board, clickCell)
-        );
+      if (clickCell === startCell) {
         this.setState({ selectedCell: undefined });
         return;
       }
 
       // Otherwise, attempt to move the piece there
-      if (
-        true ||
-        (this.getMovablePieces().has(startCell) &&
-          this.getLegalDestinations().has(clickCell))
-      ) {
-        this.makeMove({ start: startCell, end: clickCell });
+      if (this.state.moveMap.get(startCell).has(clickCell)) {
+        const move = { start: startCell, end: clickCell };
+        this.makeMove(move);
+        if (this.props.online) {
+          this.sendMove(move);
+        }
         return;
       }
     }
@@ -145,18 +208,56 @@ export class GameManager extends React.Component<
 
   /** Find all locations where a legal move can start. */
   getMovablePieces(): Set<Cell> {
-    // return new Set(this.state.moveMap?.keys());
-    const result: Set<Cell> = new Set();
-    for (let i = 0; i < 64; i++) {
-      const cellContents = boardGet(this.state.gameState.board, i);
-      if (
-        cellContents !== Piece.Empty &&
-        isAllied(cellContents, this.state.gameState.whiteToMove)
-      ) {
-        result.add(i);
-      }
+    // No highlighted cells when it's not your turn
+    if (!this.isMyTurn()) {
+      return new Set();
     }
-    return result;
+
+    return new Set(this.state.moveMap?.keys());
+  }
+
+  getSemiHighlightedCells(): Set<Cell> {
+    if (this.state.selectedCell) {
+      // Return all the cells that the selected piece can move to
+      return this.state.moveMap.get(this.state.selectedCell) || new Set();
+    } else {
+      // Return all the pieces that have legal moves
+      return this.getMovablePieces();
+    }
+  }
+
+  getTertiaryHighlightedCells(): Set<Cell> {
+    // return new Set();
+    if (!this.state.selectedCell) {
+      let fullSet: Set<Cell> = new Set();
+      this.state.moveMap.forEach((x) => {
+        x.forEach((y) => {
+          if (
+            isAllied(
+              boardGet(this.state.gameState.board, y),
+              !this.state.gameState.whiteToMove
+            )
+          ) {
+            fullSet.add(y);
+          }
+        });
+      });
+      return fullSet;
+    }
+    return new Set();
+  }
+
+  isMyTurn() {
+    // In a local game, it's always someone's turn on this client
+    if (!this.props.online) {
+      return true;
+    }
+    return (
+      (this.state.turnState === TurnState.WhiteTurn &&
+        this.playerColorRef.current === "white") ||
+      (this.state.turnState === TurnState.BlackTurn &&
+        this.playerColorRef.current === "black")
+    );
   }
 
   /** Halt the current game. At the moment, the game cannot be resumed, only restarted. */
@@ -166,20 +267,50 @@ export class GameManager extends React.Component<
     });
   }
 
+  sendMove(move: Move) {
+    this.socketRef.current.emit("send-move", move, this.lobbyIdRef.current);
+  }
+
+  sendChatMessage(message: string) {
+    if (this.props.online) {
+      this.socketRef.current.emit(
+        "send-message",
+        message,
+        this.lobbyIdRef.current
+      );
+    }
+  }
+
   render() {
-    return (
+    return this.state.waitingOnJoin ? (
+      <div>Loading...</div>
+    ) : (
       <GameRenderer
         board={this.state.gameState.board}
         turnState={this.state.turnState}
-        movablePieces={this.getMovablePieces()}
-        legalDestinations={this.getLegalDestinations()}
+        semiHighlightedCells={this.getSemiHighlightedCells()}
+        tertiaryHighlightedCells={this.getTertiaryHighlightedCells()}
         stopGameFunction={this.stopGame}
         restartFunction={this.restart}
         onCellClickedFunction={this.onCellClicked}
         selectedCell={this.state.selectedCell}
+        chatMessages={this.state.chatMessages}
+        chatFunction={this.sendChatMessage}
+        isWhite={!this.props.online || this.playerColorRef.current == "white"}
+        {...this.props}
       />
     );
   }
 }
 
-export default GameManager;
+export const withRouter = (Component: any) => {
+  const Wrapper = (props: any) => {
+    const params = useParams();
+
+    return <Component params={params} {...props} />;
+  };
+
+  return Wrapper;
+};
+
+export const WrappedGameManager = withRouter(GameManager);

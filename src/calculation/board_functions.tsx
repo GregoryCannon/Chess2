@@ -2,6 +2,12 @@ import { Board, Cell, Move } from "../data/constants";
 import { Piece } from "../data/pieces";
 import { BOARD_HEIGHT, BOARD_WIDTH } from "../data/config";
 
+export function prettyPrintCell(cell: Cell) {
+  const row = getRow(cell);
+  const col = getCol(cell);
+  return ["a", "b", "c", "d", "e", "f", "g", "h"][col] + (BOARD_HEIGHT - row);
+}
+
 export function boardGet(board: Board, cell: Cell): Piece {
   return board.charAt(cell) as Piece;
 }

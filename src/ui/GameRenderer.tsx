@@ -22,20 +22,6 @@ import React from "react";
 //   //   : positionEval?.toFixed(2);
 // }
 
-function getSemiHighlightedCells(
-  legalDestinations: Set<Cell>,
-  movablePieces: Set<Cell>,
-  selectedCell?: Cell
-): Set<Cell> {
-  if (selectedCell) {
-    // Return all the cells that the selected piece can move to
-    return legalDestinations || new Set();
-  } else {
-    // Return all the pieces that have legal moves
-    return movablePieces;
-  }
-}
-
 function getStatusMessage(turnState: TurnState) {
   switch (turnState) {
     case TurnState.NotStarted:
@@ -52,20 +38,17 @@ function getStatusMessage(turnState: TurnState) {
 export function GameRenderer(props: {
   board: Board;
   turnState: TurnState;
-  movablePieces: Set<Cell>;
-  legalDestinations: Set<Cell>;
+  semiHighlightedCells: Set<Cell>;
+  tertiaryHighlightedCells: Set<Cell>;
   stopGameFunction: Function;
   restartFunction: Function;
   onCellClickedFunction: Function;
   selectedCell?: Cell;
-  positionEval?: number;
-  bestLine?: string;
+  chatMessages: String[];
+  chatFunction: Function;
+  online: boolean;
+  isWhite: boolean;
 }) {
-  const secondaryHighlightedCells: Set<Cell> = getSemiHighlightedCells(
-    props.legalDestinations,
-    props.movablePieces,
-    props.selectedCell
-  );
   // const evalPercentage = convertEvalToBarPercentage(props.positionEval);
   // const evalLabelText = getEvalLabelText(props.positionEval);
 
@@ -93,8 +76,10 @@ export function GameRenderer(props: {
         <GameBoard
           onCellClicked={props.onCellClickedFunction}
           selectedCell={props.selectedCell}
-          secondaryHighlightedCells={secondaryHighlightedCells}
+          secondaryHighlightedCells={props.semiHighlightedCells}
+          tertiaryHighlightedCells={props.tertiaryHighlightedCells}
           board={props.board}
+          isWhite={props.isWhite}
         />
       </div>
       <button onClick={() => props.restartFunction()}>
@@ -103,7 +88,23 @@ export function GameRenderer(props: {
           ? "Restart"
           : "Start!"}
       </button>
-      <button onClick={() => props.stopGameFunction()}>Stop</button>
+      {props.online && (
+        <React.Fragment>
+          <button onClick={() => props.chatFunction("Hello!")}>
+            Say hi in chat
+          </button>
+          <div className="Chat-Container">
+            <h3>In-Game Chat</h3>
+            {props.chatMessages.map((message, i) => (
+              <div className="Chat-Row" key={i}>
+                {message}
+              </div>
+            ))}
+          </div>
+        </React.Fragment>
+      )}
+
+      {/* <button onClick={() => props.stopGameFunction()}>Stop</button> */}
     </div>
   );
 }

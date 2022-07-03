@@ -50,6 +50,10 @@
   background-color: rgba(255, 166, 0, 0.4);
 }
 
+.tertiary-highlighted {
+  box-shadow: 0px 0px 10px 8px rgba(255, 0, 0, 0.3) inset;
+}
+
 .white {
   background-color: rgb(225, 240, 255);
 }

@@ -1,6 +1,8 @@
 import React from "react";
 import "./App.css";
-import GameManager from "./GameManager";
+import { WrappedGameManager } from "./GameManager";
+import { Lobby } from "./Lobby";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 function App() {
   return (
@@ -11,9 +13,20 @@ function App() {
           Game design by Oats Jenkins. <br />
           Site developed by Greg Cannon
         </p>
+        <BrowserRouter>
+          <Routes>
+            <Route
+              path="/play/lobby/:lobbyId"
+              element={<WrappedGameManager online={true} />}
+            ></Route>
+            <Route
+              path="/play/local"
+              element={<WrappedGameManager online={false} />}
+            ></Route>
+            <Route path="/" element={<Lobby />}></Route>
+          </Routes>
+        </BrowserRouter>
       </header>
-
-      <GameManager />
     </div>
   );
 }

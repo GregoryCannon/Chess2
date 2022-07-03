@@ -90,6 +90,8 @@ type Props = {
   onCellClicked: Function;
   selectedCell?: Cell;
   secondaryHighlightedCells: Set<Cell>;
+  tertiaryHighlightedCells: Set<Cell>;
+  isWhite: boolean;
 };
 
 export function GameBoard(props: Props) {
@@ -113,6 +115,8 @@ export function GameBoard(props: Props) {
               ? "highlight-layer primary-highlighted"
               : props.secondaryHighlightedCells.has(cell)
               ? "highlight-layer secondary-highlighted"
+              : props.tertiaryHighlightedCells.has(cell)
+              ? "highlight-layer tertiary-highlighted"
               : "highlight-layer"
           }
         >
@@ -127,32 +131,35 @@ export function GameBoard(props: Props) {
     );
   }
 
+  const indices = [0, 1, 2, 3, 4, 5, 6, 7];
+  const fileNames = ["a", "b", "c", "d", "e", "f", "g", "h"];
+  if (!props.isWhite) {
+    indices.reverse();
+    fileNames.reverse();
+  }
+
   /**
    * return the whole game board, with row/col labels
    */
   return (
     <div className="game-board">
       {/* Loop through rows */}
-      {[0, 1, 2, 3, 4, 5, 6, 7].map((rowIndex) => (
+      {indices.map((rowIndex) => (
         <div className="board-row" key={rowIndex}>
           {/* File label */}
           <div className="label-vertical">{BOARD_HEIGHT - rowIndex}</div>
 
           {/* Loop through columns */}
-          {[0, 1, 2, 3, 4, 5, 6, 7].map((colIndex) =>
-            renderCell(props, rowIndex, colIndex)
-          )}
+          {indices.map((colIndex) => renderCell(props, rowIndex, colIndex))}
         </div>
       ))}
       <div className="label-row">
         <div className="label-vertical"></div>
-        {["a", "b", "c", "d", "e", "f", "g", "h"]
-          .slice(0, BOARD_WIDTH)
-          .map((val) => (
-            <div className="label-horizontal" key={val}>
-              {val}
-            </div>
-          ))}
+        {fileNames.slice(0, BOARD_WIDTH).map((val) => (
+          <div className="label-horizontal" key={val}>
+            {val}
+          </div>
+        ))}
       </div>
     </div>
   );

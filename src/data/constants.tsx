@@ -14,6 +14,13 @@ export enum GameResult {
   Draw,
 }
 
+export type LobbyData = {
+  name: string;
+  whitePlayerId: string;
+  blackPlayerId: string;
+  id: number;
+};
+
 export type MoveMap = Map<Cell, Set<Cell>>;
 
 export interface Move {
@@ -88,7 +95,7 @@ export const StartBoard: string =
   Piece.wMonke +
   Piece.wCrow;
 
-export const StartState = {
+export const START_STATE = {
   board: StartBoard,
   crowsActive: false,
   whiteToMove: true,
