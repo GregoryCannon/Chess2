@@ -3,7 +3,7 @@ const path = require("path");
 const app = express();
 
 const SOCKET_PORT = 4000;
-const MAIN_PORT = 3000;
+const MAIN_PORT = process.env.PORT || 3000;
 
 /**
  * SERVE THE UI
