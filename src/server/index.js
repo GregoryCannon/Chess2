@@ -1,8 +1,10 @@
+const http = require("http");
+const cors = require("cors");
 const express = require("express");
 const path = require("path");
 const app = express();
+const server = http.createServer(app);
 
-const SOCKET_PORT = 4000;
 const MAIN_PORT = process.env.PORT || 3000;
 
 /**
@@ -15,14 +17,17 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname + "/../../build/index.html"));
 });
 
-app.listen(MAIN_PORT);
+server.listen(MAIN_PORT, (error) => {
+  if (error) console.log(error);
+  console.log(`Server started on port ${MAIN_PORT}`);
+});
 
 /**
  * HANDLE SOCKET BACKEND
  */
-const io = require("socket.io")(SOCKET_PORT, {
+const io = require("socket.io")(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "*",
   },
 });
 

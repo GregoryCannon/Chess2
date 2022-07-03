@@ -1,10 +1,7 @@
 import React from "react";
 import { boardGet, getBoardAfterMove } from "../calculation/board_functions";
 import { useParams } from "react-router-dom";
-import {
-  getMoveMap,
-  generatePossibleMoves,
-} from "../calculation/move_calculator";
+import { getMoveMap } from "../calculation/move_calculator";
 import {
   Cell,
   GameState,
@@ -13,10 +10,9 @@ import {
   START_STATE,
   TurnState,
 } from "../data/constants";
-import { Piece } from "../data/pieces";
 import { isAllied } from "../calculation/piece_functions";
 import { GameRenderer } from "./GameRenderer";
-import { BOARD_SIZE } from "../data/config";
+import { IS_PRODUCTION } from "../data/config";
 const { io } = require("socket.io-client");
 
 export class GameManager extends React.Component<
@@ -80,7 +76,11 @@ export class GameManager extends React.Component<
   setupWebSockets() {
     // Handle socket setup
     if (!this.socketRef.current) {
-      const socket = io("http://localhost:4000");
+      const socket = io(
+        IS_PRODUCTION
+          ? "https://chesstwo.herokuapp.com"
+          : "http://localhost:3000"
+      );
       this.socketRef.current = socket;
 
       socket.on("connect", () => {

@@ -1,7 +1,11 @@
 import React, { useState } from "react";
+import { IS_PRODUCTION } from "../data/config";
 import "./Lobby.css";
 const { io } = require("socket.io-client");
-const socket = io("http://localhost:4000");
+
+const socket = io(
+  IS_PRODUCTION ? "https://chesstwo.herokuapp.com" : "http://localhost:3000"
+);
 
 socket.on("connect", () => {
   console.log("Lobby - Connected to server!", socket.id);
