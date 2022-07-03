@@ -82,12 +82,14 @@ export function GameRenderer(props: {
           isWhite={props.isWhite}
         />
       </div>
-      <button onClick={() => props.restartFunction()}>
-        {props.turnState === TurnState.WhiteTurn ||
-        props.turnState === TurnState.BlackTurn
-          ? "Restart"
-          : "Start!"}
-      </button>
+      {!props.online && (
+        <button onClick={() => props.restartFunction()}>
+          {props.turnState === TurnState.WhiteTurn ||
+          props.turnState === TurnState.BlackTurn
+            ? "Restart"
+            : "Start!"}
+        </button>
+      )}
       {props.online && (
         <React.Fragment>
           <button onClick={() => props.chatFunction("Hello!")}>
