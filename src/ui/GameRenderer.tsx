@@ -42,17 +42,15 @@ export function GameRenderer(props: {
         </div>
         {/* <div className="eval-computer-line">{props.bestLine}</div> */}
       </div>
-      <div className="game-board-container">
-        <GameBoard
-          onCellClicked={props.onCellClickedFunction}
-          selectedCell={props.selectedCell}
-          secondaryHighlightedCells={props.semiHighlightedCells}
-          tertiaryHighlightedCells={props.tertiaryHighlightedCells}
-          quaternaryHighlightedCells={props.quaternaryHighlightedCells}
-          board={props.board}
-          isWhite={props.isWhite}
-        />
-      </div>
+      <GameBoard
+        onCellClicked={props.onCellClickedFunction}
+        selectedCell={props.selectedCell}
+        secondaryHighlightedCells={props.semiHighlightedCells}
+        tertiaryHighlightedCells={props.tertiaryHighlightedCells}
+        quaternaryHighlightedCells={props.quaternaryHighlightedCells}
+        board={props.board}
+        isWhite={props.isWhite}
+      />
       {!props.online && (
         <button onClick={() => props.restartFunction()}>
           {props.turnState === TurnState.WhiteTurn ||

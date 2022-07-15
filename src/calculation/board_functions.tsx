@@ -1,6 +1,5 @@
-import { Board, Cell, Move } from "../data/constants";
-import { Piece } from "../data/pieces";
-import { BOARD_HEIGHT, BOARD_WIDTH } from "../data/config";
+import { Board, Cell, Move, Piece } from "../data/constants";
+import { BOARD_HEIGHT, BOARD_SIZE, BOARD_WIDTH } from "../data/config";
 
 export function prettyPrintCell(cell: Cell) {
   const row = getRow(cell);
@@ -28,11 +27,13 @@ export function getCol(cell: Cell): number {
   return cell % BOARD_WIDTH;
 }
 
-export const LeftJailUpper = BOARD_WIDTH * BOARD_HEIGHT + 0;
-export const LeftJailLower = BOARD_WIDTH * BOARD_HEIGHT + 1;
-export const RightJailUpper = BOARD_WIDTH * BOARD_HEIGHT + 2;
-export const RightJailLower = BOARD_WIDTH * BOARD_HEIGHT + 3;
-export const BearCell = BOARD_WIDTH * BOARD_HEIGHT + 4;
+export const BLACK_MONKEY_RESCUE_START_CELL = 39;
+export const WHITE_MONKEY_RESCUE_START_CELL = 24;
+export const WHITE_QUEEN_JAIL = BOARD_SIZE + 0;
+export const WHITE_KING_JAIL = BOARD_SIZE + 1;
+export const BLACK_QUEEN_JAIL = BOARD_SIZE + 2;
+export const BLACK_KING_JAIL = BOARD_SIZE + 3;
+export const BEAR_CELL = BOARD_SIZE + 4;
 
 /** Advances the board state as per the provided move. Assumes that the previous move was legal. */
 export function getBoardAfterMove(move: Move, board: Board): Board {

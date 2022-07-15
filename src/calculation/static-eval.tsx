@@ -4,11 +4,12 @@ import {
   GameResult,
   GameState,
   Move,
+  MoveMap,
+  Piece,
   TurnState,
 } from "../data/constants";
-import { Piece } from "../data/pieces";
 import { boardGet, encodeCell } from "./board_functions";
-import { generatePossibleMoves } from "./move_calculator";
+import { generatePossibleMoves, getMoveMap } from "./move_calculator";
 
 const WIN_BLACK_VALUE = -1000;
 const WIN_WHITE_VALUE = 1000;
@@ -16,7 +17,7 @@ const WIN_WHITE_VALUE = 1000;
 /** Checks if the game is over, and if so, returns the base eval score. */
 export function checkForGameOver(
   gameState: GameState,
-  moveList?: Array<Move>
+  nextTurnMoveMap?: MoveMap
 ): [boolean, number, GameResult] {
   // Check for King + Queen dead
   let whiteDead = true;
@@ -37,12 +38,12 @@ export function checkForGameOver(
   }
 
   // Get move list if not provided
-  if (moveList === undefined) {
-    moveList = generatePossibleMoves(gameState);
+  if (nextTurnMoveMap === undefined) {
+    nextTurnMoveMap = getMoveMap(gameState);
   }
 
-  // Check for game over by checkmate or stalemate
-  if (moveList.length === 0) {
+  // Check for game over by stalemate
+  if (nextTurnMoveMap.entries.length === 0) {
     return [true, 0, GameResult.Draw];
   }
 
@@ -76,9 +77,9 @@ function getValueOfPiece(piece: Piece) {
     case Piece.bElephant:
       return -0.6;
     case Piece.wCrow:
-      return 1.1;
+      return 1.5;
     case Piece.bCrow:
-      return -1.1;
+      return -1.5;
     case Piece.wQueen:
     case Piece.wFishQueen:
       return 8;
@@ -86,8 +87,10 @@ function getValueOfPiece(piece: Piece) {
     case Piece.bFishQueen:
       return -8;
     case Piece.wKing:
+    case Piece.wKingWithBanana:
       return 4;
     case Piece.bKing:
+    case Piece.bKingWithBanana:
       return -4;
     case Piece.wMonke:
       return 6;

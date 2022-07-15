@@ -1,4 +1,4 @@
-import { Piece } from "../data/pieces";
+import { Piece } from "../data/constants";
 
 export function isAllied(piece: Piece, whiteToMove: boolean) {
   return whiteToMove ? isWhite(piece) : isBlack(piece);

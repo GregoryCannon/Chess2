@@ -1,14 +1,25 @@
-import { Board, Cell, GameState, Move, MoveMap } from "../data/constants";
+import {
+  Board,
+  Cell,
+  GameState,
+  Move,
+  MoveMap,
+  Piece,
+} from "../data/constants";
 import { isAllied } from "./piece_functions";
 import {
+  BEAR_CELL,
+  BLACK_KING_JAIL,
+  BLACK_MONKEY_RESCUE_START_CELL,
   boardGet,
   encodeCell,
   getCol,
   getRow,
   prettyPrintCell,
+  WHITE_KING_JAIL,
+  WHITE_MONKEY_RESCUE_START_CELL,
 } from "./board_functions";
 import { BOARD_HEIGHT, BOARD_SIZE, BOARD_WIDTH } from "../data/config";
-import { Piece } from "../data/pieces";
 
 const MAIN_8_DIRECTIONS = [
   [-1, -1],
@@ -24,10 +35,16 @@ const MAIN_8_DIRECTIONS = [
 export function generatePossibleMoves(gameState: GameState): Array<Move> {
   let moveList = [];
 
-  for (let startCell = 0; startCell < BOARD_SIZE; startCell++) {
+  for (let startCell = 0; startCell <= BEAR_CELL; startCell++) {
+    // Don't allow jail moves
+    if (startCell >= BOARD_SIZE && startCell !== BEAR_CELL) {
+      continue;
+    }
+    // Move search based on the piece at that cel
     const piece = boardGet(gameState.board, startCell);
-    if (isAllied(piece, gameState.whiteToMove)) {
-      // Move search
+    if (piece === Piece.Bear) {
+      _bearMoveSearch(gameState, startCell, moveList);
+    } else if (isAllied(piece, gameState.whiteToMove)) {
       switch (piece) {
         case Piece.wPawn:
         case Piece.bPawn:
@@ -134,7 +151,10 @@ function _takeOnly(
   }
   const end = encodeCell(endRow, endCol);
   // If allied to the enemy, it's valid to take
-  if (isAllied(boardGet(board, end), !whiteToMove)) {
+  if (
+    isAllied(boardGet(board, end), !whiteToMove) ||
+    boardGet(board, end) === Piece.Bear
+  ) {
     moveList.push({ start, end });
     return true;
   }
@@ -295,6 +315,7 @@ function _monkeMoveSearch(
     getRow(startCell),
     getCol(startCell),
     gameState.whiteToMove,
+    false,
     new Set(),
     moveList
   );
@@ -306,6 +327,7 @@ function _monkeHopMoveSearch(
   startRow: number,
   startCol: number,
   whiteToMove: boolean,
+  didRescueKing: boolean,
   visited: Set<Cell>,
   moveList: Move[]
 ) {
@@ -314,16 +336,43 @@ function _monkeHopMoveSearch(
 
   // Search in every direction it can hop
   for (const [rOffset, cOffset] of MAIN_8_DIRECTIONS) {
+    const destination = encodeCell(
+      startRow + 2 * rOffset,
+      startCol + 2 * cOffset
+    );
     if (
-      visited.has(encodeCell(startRow + 2 * rOffset, startCol + 2 * cOffset))
+      visited.has(destination) &&
+      !(didRescueKing && destination === originalStart)
     ) {
       continue;
     }
-    if (
+    const start = encodeCell(startRow, startCol);
+    const canJump =
       boardGet(board, encodeCell(startRow + rOffset, startCol + cOffset)) !==
-      Piece.Empty
-    ) {
-      const start = encodeCell(startRow, startCol);
+      Piece.Empty;
+    const eligibleForKingRescue =
+      didRescueKing ||
+      (whiteToMove &&
+        start === WHITE_MONKEY_RESCUE_START_CELL &&
+        boardGet(board, WHITE_KING_JAIL) === Piece.wKingWithBanana) ||
+      (!whiteToMove &&
+        start === BLACK_MONKEY_RESCUE_START_CELL &&
+        boardGet(board, BLACK_KING_JAIL) == Piece.bKingWithBanana);
+    console.log(
+      "DEBUG",
+      eligibleForKingRescue,
+      "canJump",
+      canJump,
+      rOffset,
+      cOffset,
+      start,
+      WHITE_KING_JAIL,
+      boardGet(board, WHITE_KING_JAIL),
+      BLACK_KING_JAIL,
+      boardGet(board, BLACK_KING_JAIL),
+      board
+    );
+    if (canJump) {
       if (
         _moveOnly(
           board,
@@ -334,6 +383,15 @@ function _monkeHopMoveSearch(
           moveList
         )
       ) {
+        // Mark the last move as a king rescue
+        if (eligibleForKingRescue) {
+          moveList.push({
+            start: originalStart,
+            end:
+              100 + encodeCell(startRow + 2 * rOffset, startCol + 2 * cOffset),
+          });
+          console.log("FOUND KING RESCUE");
+        }
         // Recurse
         _monkeHopMoveSearch(
           board,
@@ -341,12 +399,13 @@ function _monkeHopMoveSearch(
           startRow + 2 * rOffset,
           startCol + 2 * cOffset,
           whiteToMove,
+          eligibleForKingRescue,
           visited,
           moveList
         );
       } else {
         // Try capturing at the end of the jump sequence
-        _takeOnly(
+        const success = _takeOnly(
           board,
           originalStart,
           startRow + 2 * rOffset,
@@ -354,6 +413,15 @@ function _monkeHopMoveSearch(
           whiteToMove,
           moveList
         );
+        if (success && eligibleForKingRescue) {
+          // Mark the last move as a king rescue
+          moveList.push({
+            start: originalStart,
+            end:
+              100 + encodeCell(startRow + 2 * rOffset, startCol + 2 * cOffset),
+          });
+          console.log("FOUND KING RESCUE B");
+        }
       }
     }
   }
@@ -445,8 +513,37 @@ function _queenMoveSearch(
   }
 }
 
+function _bearMoveSearch(
+  gameState: GameState,
+  startCell: Cell,
+  moveList: Move[]
+) {
+  // Special first move
+  if (startCell == BEAR_CELL) {
+    for (const endCell of [27, 28, 35, 36]) {
+      if (boardGet(gameState.board, endCell) === Piece.Empty) {
+        moveList.push({ start: startCell, end: endCell });
+      }
+    }
+    return;
+  }
+
+  // Otherwise, it can move like a king
+  const row = getRow(startCell);
+  const col = getCol(startCell);
+  for (const [rOffset, cOffset] of MAIN_8_DIRECTIONS) {
+    _moveOnly(
+      gameState.board,
+      startCell,
+      row + rOffset,
+      col + cOffset,
+      gameState.whiteToMove,
+      moveList
+    );
+  }
+}
+
 export function getMoveMap(gameState: GameState): MoveMap {
-  console.log("Getting move map");
   return convertMoveListToMoveMap(generatePossibleMoves(gameState));
 }
 

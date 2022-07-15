@@ -1,5 +1,15 @@
 import React from "react";
-import { boardGet, getBoardAfterMove } from "../calculation/board_functions";
+import {
+  boardGet,
+  boardSet,
+  getBoardAfterMove,
+  WHITE_KING_JAIL,
+  WHITE_QUEEN_JAIL,
+  BLACK_KING_JAIL,
+  BLACK_QUEEN_JAIL,
+  BLACK_MONKEY_RESCUE_START_CELL,
+  WHITE_MONKEY_RESCUE_START_CELL,
+} from "../calculation/board_functions";
 import { useParams } from "react-router-dom";
 import { getMoveMap } from "../calculation/move_calculator";
 import {
@@ -7,13 +17,14 @@ import {
   GameState,
   Move,
   MoveMap,
+  Piece,
   START_STATE,
   TurnState,
 } from "../data/constants";
 import { isAllied } from "../calculation/piece_functions";
 import { GameRenderer } from "./GameRenderer";
 import { IS_PRODUCTION } from "../data/config";
-import { getStaticEval } from "../calculation/static-eval";
+import { checkForGameOver, getStaticEval } from "../calculation/static-eval";
 const { io } = require("socket.io-client");
 
 export class GameManager extends React.Component<
@@ -48,7 +59,6 @@ export class GameManager extends React.Component<
     this.playerColorRef = React.createRef();
 
     // Get the lobby ID from URL params
-    console.log("PARAMS:", props.params.lobbyId);
     this.lobbyIdRef.current = props.params.lobbyId;
 
     this.onCellClicked = this.onCellClicked.bind(this);
@@ -65,7 +75,6 @@ export class GameManager extends React.Component<
   }
 
   restart() {
-    console.log("RESTART");
     this.setState({
       gameStateHistory: [START_STATE],
       gameState: START_STATE,
@@ -121,9 +130,45 @@ export class GameManager extends React.Component<
 
   makeMove(move: Move) {
     const current = this.state.gameState;
-    const isCapture = isAllied(
-      boardGet(current.board, move.end),
-      !current.whiteToMove
+    const pieceAtDestination = boardGet(current.board, move.end);
+    const isCapture = isAllied(pieceAtDestination, !current.whiteToMove);
+
+    // If it's the first half of a king rescue, then just animate the monkey and filter the move map for just rescue moves
+    const jailCell = this.state.gameState.whiteToMove
+      ? WHITE_KING_JAIL
+      : BLACK_KING_JAIL;
+    const isKingRescuePart1 = move.end === jailCell;
+    if (isKingRescuePart1) {
+      console.log("DOING RESCUE PART 1");
+      const nextGameState = {
+        board: getBoardAfterMove(move, current.board),
+        whiteToMove: this.state.gameState.whiteToMove, // Turn is NOT passed to the other player in this case
+        crowsActive: false,
+        lastMove: move,
+      };
+      const nextMoveMap = new Map();
+      nextMoveMap.set(jailCell, new Set());
+      this.state.moveMap.get(move.start).forEach((x) => {
+        if (x >= 100) {
+          nextMoveMap.get(jailCell).add(x - 100);
+        }
+      });
+      const nextState = {
+        selectedCell: move.end,
+        gameState: nextGameState,
+        moveMap: nextMoveMap,
+      };
+      this.setState(nextState);
+      return;
+    }
+
+    const isKingRescuePart2 = move.start === jailCell;
+    console.log(
+      "Making move... is rescue pt2",
+      isKingRescuePart2,
+      move.start,
+      WHITE_KING_JAIL,
+      BLACK_KING_JAIL
     );
 
     // Get the new board, visitedStates and turnState
@@ -137,15 +182,92 @@ export class GameManager extends React.Component<
       lastMove: move,
     };
 
+    // Add royal pieces to graveyard
+    switch (pieceAtDestination) {
+      case Piece.wQueen:
+        nextGameState.board = boardSet(
+          nextGameState.board,
+          WHITE_QUEEN_JAIL,
+          Piece.wQueen
+        );
+        break;
+      case Piece.wKingWithBanana:
+        nextGameState.board = boardSet(
+          nextGameState.board,
+          WHITE_KING_JAIL,
+          Piece.wKingWithBanana
+        );
+        break;
+      case Piece.wKing:
+        nextGameState.board = boardSet(
+          nextGameState.board,
+          WHITE_KING_JAIL,
+          Piece.wKing
+        );
+        break;
+      case Piece.bQueen:
+        nextGameState.board = boardSet(
+          nextGameState.board,
+          BLACK_QUEEN_JAIL,
+          Piece.bQueen
+        );
+        console.log(nextGameState.board);
+        break;
+      case Piece.bKingWithBanana:
+        nextGameState.board = boardSet(
+          nextGameState.board,
+          BLACK_KING_JAIL,
+          Piece.bKingWithBanana
+        );
+        break;
+      case Piece.bKing:
+        nextGameState.board = boardSet(
+          nextGameState.board,
+          BLACK_KING_JAIL,
+          Piece.bKing
+        );
+        break;
+    }
+
+    // Maybe revive king
+    if (isKingRescuePart2) {
+      console.log("DOING RESCUE PART 2");
+      if (this.state.gameState.whiteToMove) {
+        nextGameState.board = boardSet(
+          nextGameState.board,
+          WHITE_KING_JAIL,
+          Piece.Empty
+        );
+        nextGameState.board = boardSet(
+          nextGameState.board,
+          WHITE_MONKEY_RESCUE_START_CELL,
+          Piece.wKing
+        );
+      } else {
+        nextGameState.board = boardSet(
+          nextGameState.board,
+          BLACK_KING_JAIL,
+          Piece.Empty
+        );
+        nextGameState.board = boardSet(
+          nextGameState.board,
+          BLACK_MONKEY_RESCUE_START_CELL,
+          Piece.bKing
+        );
+      }
+    }
+
+    let nextMoveMap = getMoveMap(nextGameState);
+    console.log(nextMoveMap);
+
     // // Check for game-over conditions
-    // const [gameIsOver, score, gameOverTurnState] = checkForGameOver(
-    //   nextBoard,
-    //   nextTurnState === TurnState.WhiteTurn,
-    //   nextVisitedStates,
-    //   nextMoveList
+    // const [gameIsOver, _score, _gameResult] = checkForGameOver(
+    //   nextGameState,
+    //   nextMoveMap
     // );
     // if (gameIsOver) {
-    //   nextTurnState = gameOverTurnState;
+    //   nextTurnState = TurnState.GameOver;
+    //   nextMoveMap = new Map();
     // }
 
     // Compile the new state object
@@ -154,11 +276,11 @@ export class GameManager extends React.Component<
       selectedCell: undefined,
       gameState: nextGameState,
       turnState: nextTurnState,
-      moveMap: getMoveMap(nextGameState),
+      moveMap: nextMoveMap,
       eval: getStaticEval(nextGameState),
     };
 
-    // Advance the turn and let AI make the next move
+    // Advance the turn
     this.setState(nextState);
   }
 
@@ -186,8 +308,26 @@ export class GameManager extends React.Component<
       }
 
       // Otherwise, attempt to move the piece there
-      if (this.state.moveMap.get(startCell).has(clickCell)) {
-        const move = { start: startCell, end: clickCell };
+      // const canRescueKing = this.state.moveMap
+      //   .get(startCell)
+      //   .has(clickCell + 100);
+      // if (this.state.moveMap.get(startCell).has(clickCell) || canRescueKing) {
+      //   const move = {
+      //     start: startCell,
+      //     end: clickCell + (canRescueKing ? 100 : 0),
+      //   };
+      //   this.makeMove(move);
+      //   if (this.props.online) {
+      //     this.sendMove(move);
+      //   }
+      //   return;
+      // }
+
+      if (this.getLegalDestinations().has(clickCell)) {
+        const move = {
+          start: startCell,
+          end: clickCell,
+        };
         this.makeMove(move);
         if (this.props.online) {
           this.sendMove(move);
@@ -207,7 +347,18 @@ export class GameManager extends React.Component<
     if (this.state.selectedCell === undefined || !this.state.moveMap) {
       return new Set();
     }
-    return this.state.moveMap.get(this.state.selectedCell) || new Set();
+    const result: Set<Cell> = new Set();
+    this.state.moveMap.get(this.state.selectedCell).forEach((x) => {
+      if (x >= 100) {
+        // Add the king rescue square
+        result.add(
+          this.state.gameState.whiteToMove ? WHITE_KING_JAIL : BLACK_KING_JAIL
+        );
+      } else {
+        result.add(x);
+      }
+    });
+    return result;
   }
 
   /** Find all locations where a legal move can start. */
@@ -222,8 +373,7 @@ export class GameManager extends React.Component<
 
   getSemiHighlightedCells(): Set<Cell> {
     if (this.state.selectedCell) {
-      // Return all the cells that the selected piece can move to
-      return this.state.moveMap.get(this.state.selectedCell) || new Set();
+      return this.getLegalDestinations();
     } else {
       // Return all the pieces that have legal moves
       return this.getMovablePieces();
@@ -255,10 +405,16 @@ export class GameManager extends React.Component<
     if (!this.state.gameState.lastMove || this.state.selectedCell) {
       return new Set();
     }
-    return new Set([
-      this.state.gameState.lastMove.start,
-      this.state.gameState.lastMove.end,
-    ]);
+    const result: Set<Cell> = new Set();
+    const lastMove = this.state.gameState.lastMove;
+    result.add(lastMove.start);
+    result.add(lastMove.end);
+    if (lastMove.start === WHITE_KING_JAIL) {
+      result.add(WHITE_MONKEY_RESCUE_START_CELL);
+    } else if (lastMove.start === BLACK_KING_JAIL) {
+      result.add(BLACK_MONKEY_RESCUE_START_CELL);
+    }
+    return result;
   }
 
   isMyTurn() {

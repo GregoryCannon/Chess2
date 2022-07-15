@@ -1,17 +1,18 @@
 import React from "react";
 import "./GameBoard.css";
-import { BOARD_HEIGHT, BOARD_WIDTH } from "../data/config";
-import { Board, Cell } from "../data/constants";
-import { boardGet, encodeCell } from "../calculation/board_functions";
-import { Piece } from "../data/pieces";
-
-function cellIsSelected(
-  rowIndex: number,
-  colIndex: number,
-  selectedCell?: Cell
-): boolean {
-  return selectedCell === encodeCell(rowIndex, colIndex);
-}
+import { BOARD_HEIGHT, BOARD_SIZE, BOARD_WIDTH } from "../data/config";
+import { Board, Cell, Piece } from "../data/constants";
+import {
+  BEAR_CELL,
+  boardGet,
+  encodeCell,
+  getCol,
+  getRow,
+  WHITE_KING_JAIL,
+  WHITE_QUEEN_JAIL,
+  BLACK_KING_JAIL,
+  BLACK_QUEEN_JAIL,
+} from "../calculation/board_functions";
 
 const PIECE_IMAGES = new Map([
   [Piece.wPawn, "wPawn"],
@@ -77,37 +78,52 @@ type Props = {
 };
 
 export function GameBoard(props: Props) {
-  /** Render the contents of one cell based on its coordinates */
-  function renderCell(props: Props, row: number, col: number): any {
-    const cell = encodeCell(row, col);
-    const cellContents = boardGet(props.board, cell);
-    let classList = "highlight-layer ";
-    if (cellIsSelected(row, col, props.selectedCell)) {
-      classList += "primary-highlighted ";
+  function getHighlightClass(props: Props, cell: Cell): string {
+    if (props.selectedCell === cell) {
+      return "primary-highlighted ";
     } else if (props.secondaryHighlightedCells.has(cell)) {
-      classList += "secondary-highlighted ";
+      return "secondary-highlighted ";
     } else if (
       props.quaternaryHighlightedCells.has(cell) &&
       props.tertiaryHighlightedCells.has(cell)
     ) {
-      classList += "tert-and-quat-highlighted ";
+      return "tert-and-quat-highlighted ";
     } else if (props.quaternaryHighlightedCells.has(cell)) {
-      classList += "quaternary-highlighted ";
+      return "quaternary-highlighted ";
     } else if (props.tertiaryHighlightedCells.has(cell)) {
-      classList += "tertiary-highlighted ";
+      return "tertiary-highlighted ";
     }
+    return "";
+  }
 
+  /** Render the contents of one cell based on its coordinates */
+  function renderCell(props: Props, cell: Cell): any {
+    const cellContents = boardGet(props.board, cell);
+    let innerCellClasses = "highlight-layer " + getHighlightClass(props, cell);
+
+    let outerCellClasses;
+    if (cell < BOARD_SIZE) {
+      // Main board
+      const row = getRow(cell);
+      const col = getCol(cell);
+      outerCellClasses =
+        (row + col) % 2 === 0 ? "board-square white" : "board-square black";
+    } else if (cell < BOARD_SIZE + 4) {
+      // Jail cell
+      outerCellClasses = "board-square jail";
+    } else {
+      // Bear cell
+      outerCellClasses = "";
+    }
     return (
       <div
-        className={
-          (row + col) % 2 === 0 ? "board-square white" : "board-square black"
-        }
-        key={row + "," + col}
+        className={outerCellClasses}
+        key={cell}
         onClick={() => {
-          props.onCellClicked(encodeCell(row, col));
+          props.onCellClicked(cell);
         }}
       >
-        <div className={classList}>
+        <div className={innerCellClasses}>
           {cellContents && cellContents !== Piece.Empty && (
             <img
               className="contents"
@@ -130,25 +146,61 @@ export function GameBoard(props: Props) {
    * return the whole game board, with row/col labels
    */
   return (
-    <div className="game-board">
-      {/* Loop through rows */}
-      {indices.map((rowIndex) => (
-        <div className="board-row" key={rowIndex}>
-          {/* File label */}
-          <div className="label-vertical">{BOARD_HEIGHT - rowIndex}</div>
+    <div className="game-board-container">
+      <div className="game-board">
+        {/* Loop through rows */}
+        {indices.map((rowIndex) => (
+          <div className="board-row" key={rowIndex}>
+            {/* Maybe left jail */}
+            {rowIndex === 3 ? (
+              renderCell(props, WHITE_QUEEN_JAIL)
+            ) : rowIndex === 4 ? (
+              renderCell(props, WHITE_KING_JAIL)
+            ) : (
+              <div className="jail-spacer"></div>
+            )}
 
-          {/* Loop through columns */}
-          {indices.map((colIndex) => renderCell(props, rowIndex, colIndex))}
-        </div>
-      ))}
-      <div className="label-row">
-        <div className="label-vertical"></div>
-        {fileNames.slice(0, BOARD_WIDTH).map((val) => (
-          <div className="label-horizontal" key={val}>
-            {val}
+            {/* File label */}
+            <div className="label-vertical">{BOARD_HEIGHT - rowIndex}</div>
+
+            {/* Loop through columns */}
+            {indices.map((colIndex) =>
+              renderCell(props, encodeCell(rowIndex, colIndex))
+            )}
+
+            {/* Dummy label just used as a spacer */}
+            <div className="label-vertical">{}</div>
+
+            {/* Maybe right jail */}
+            {rowIndex === 3 ? (
+              renderCell(props, BLACK_QUEEN_JAIL)
+            ) : rowIndex === 4 ? (
+              renderCell(props, BLACK_KING_JAIL)
+            ) : (
+              <div className="jail-spacer"></div>
+            )}
           </div>
         ))}
+        <div className="label-row">
+          <div className="jail-spacer"></div>
+          <div className="label-vertical"></div>
+          {fileNames.slice(0, BOARD_WIDTH).map((val) => (
+            <div className="label-horizontal" key={val}>
+              {val}
+            </div>
+          ))}
+        </div>
       </div>
+
+      {boardGet(props.board, BEAR_CELL) === Piece.Bear && (
+        <img
+          className={"bear-cell " + getHighlightClass(props, BEAR_CELL)}
+          src="/piece-assets/Bear.png"
+          onClick={() => {
+            props.onCellClicked(BEAR_CELL);
+          }}
+        ></img>
+      )}
     </div>
   );
 }

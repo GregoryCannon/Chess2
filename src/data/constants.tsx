@@ -1,5 +1,3 @@
-import { Piece } from "./pieces";
-
 export enum TurnState {
   NotStarted,
   GameOver,
@@ -53,17 +51,38 @@ export type GameState = {
   lastMove: Move;
 };
 
+export enum Piece {
+  wPawn = "P",
+  wElephant = "E",
+  wCrow = "C",
+  wMonke = "M",
+  wQueen = "Q",
+  wFishQueen = "F",
+  wKingWithBanana = "K",
+  wKing = "L",
+  bPawn = "p",
+  bElephant = "e",
+  bCrow = "c",
+  bMonke = "m",
+  bQueen = "q",
+  bFishQueen = "f",
+  bKingWithBanana = "k",
+  bKing = "l",
+  Bear = "B",
+  Empty = ".",
+}
+
 const emptyRow: string = "........";
 export const StartBoard: string =
   Piece.bCrow +
   Piece.bMonke +
   Piece.bPawn +
   Piece.bQueen +
-  Piece.bKing +
+  Piece.bKingWithBanana +
   Piece.bPawn +
   Piece.bMonke +
   Piece.bCrow +
-  // row
+  // Row
   Piece.bPawn +
   Piece.bPawn +
   Piece.bElephant +
@@ -72,12 +91,12 @@ export const StartBoard: string =
   Piece.bElephant +
   Piece.bPawn +
   Piece.bPawn +
-  // row
+  // Row
   emptyRow +
   emptyRow +
   emptyRow +
   emptyRow +
-  // row
+  // Row
   Piece.wPawn +
   Piece.wPawn +
   Piece.wElephant +
@@ -86,15 +105,22 @@ export const StartBoard: string =
   Piece.wElephant +
   Piece.wPawn +
   Piece.wPawn +
-  // row
+  // Row
   Piece.wCrow +
   Piece.wMonke +
   Piece.wPawn +
   Piece.wQueen +
-  Piece.wKing +
+  Piece.wKingWithBanana +
   Piece.wPawn +
   Piece.wMonke +
-  Piece.wCrow;
+  Piece.wCrow +
+  // Jail cells
+  Piece.Empty +
+  Piece.Empty +
+  Piece.Empty +
+  Piece.Empty +
+  // Bear cell
+  Piece.Bear;
 
 export const START_STATE: GameState = {
   board: StartBoard,

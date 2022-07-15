@@ -1,3 +1,7 @@
+.game-board-container {
+  position: relative;
+}
+
 .game-board {
   display: inline-block;
 }
@@ -10,8 +14,10 @@
 }
 
 .label-vertical {
-  width: 20px;
+  width: 30px;
   line-height: 60px;
+  text-align: right;
+  margin-right: 6px;
 }
 
 .label-horizontal {
@@ -24,6 +30,22 @@
   text-align: center;
   border: 1px solid black;
   background-color: rgb(192, 192, 192);
+}
+
+.jail-spacer {
+  width: 62px;
+  height: 62px;
+}
+
+.bear-cell {
+  width: 56px;
+  height: 46px;
+  position: absolute;
+  top: 222px;
+  left: 50%;
+  transform: translate(-50%, 0);
+  object-fit: contain;
+  border-radius: 10px;
 }
 
 .board-square .contents {
@@ -69,4 +91,8 @@
 
 .black {
   background-color: rgb(122, 148, 196);
+}
+
+.jail {
+  background-color: grey;
 }
